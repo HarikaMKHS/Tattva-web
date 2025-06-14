@@ -11,7 +11,8 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from sqlalchemy.pool import QueuePool
 from flask import send_file
-
+from flask import redirect, url_for
+from flask import render_template
 
 
 
@@ -376,10 +377,12 @@ def ping():
 
 @app.route('/')
 def home():
-    return render_template("index.html")
+    return redirect(url_for('login_client'))
+
+
 @app.route('/login-client')
 def login_client():
-    return send_file('login-client.html')
+    return render_template('login-client.html')
 
 
 with app.app_context():
