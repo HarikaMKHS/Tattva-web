@@ -11,17 +11,17 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from sqlalchemy.pool import QueuePool
 from flask import send_file
-from dotenv import load_dotenv
 
 
-load_dotenv()
+
+
 
 
 
 app = Flask(__name__,template_folder='templates', static_folder='static')
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://neondb_owner:npg_6jtIqEBw5Yvp@ep-shy-river-a8ju7x65-pooler.eastus2.azure.neon.tech/Login-client?sslmode=require'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "poolclass": QueuePool,
