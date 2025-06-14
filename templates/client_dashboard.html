@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Client Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    .dashboard-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+      text-align: center;
+    }
+    .form-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 250px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 15px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .client-info {
+      text-align: left;
+      margin-bottom: 30px;
+      padding: 15px;
+      background-color: #e9f5ff;
+      border-radius: 8px;
+    }
+    .client-info p {
+      margin: 6px 0;
+      font-size: 16px;
+    }
+    .card-row {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      padding: 20px;
+    }
+    .info-card {
+      flex:  0 0 50px;
+      min-width: 230px;
+      background-color: #ffedf0;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+    }
+    .info-card h4 {
+      margin: 0;
+      font-size: 14px;
+      color: #888;
+    }
+    .info-card p {
+      margin: 5px 0 0;
+      font-size: 20px;
+      font-weight: bold;
+      color: #d6336c;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      font-size: 15px;
+      text-align: center;
+    }
+    th {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    .download-btn {
+      text-align: center;
+      margin-top: 30px;
+    }
+    canvas {
+      max-width: 500px;
+      margin: 20px auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard-container">
+  <a href="/login-client">
+  <button style="background-color: #6c757d;">← Home</button>
+</a>
+  <h2>Client Dashboard Report</h2>
+  <div class="form-section" id="formSection">
+    <form method="POST" action="/dashboard-form">
+      <input type="text" name="client_id" required placeholder="Enter Client Code">
+      <button type="submit">View Dashboard</button>
+    </form>
+  </div>
+  {% if client_data %}
+  <div id="dashboardContent">
+    <div class="client-info">
+      <p><strong>Client Name:</strong> {{ client_data.client_name }}</p>
+      <p><strong>Client Code:</strong> {{ client_data.client_code }}</p>
+      <p><strong>Investment Date:</strong> {{ client_data.investment_date }}</p>
+    </div>
+    <div class="card-row">
+      <div class="info-card">
+        <h4>Total Investment Value</h4>
+        <p>{{ client_data.total_value }}</p>
+      </div>
+      <div class="info-card">
+        <h4>Investment Portfolio Value</h4>
+        <p>{{ client_data.portfolio_value }}</p>
+      </div>
+      <div class="info-card">
+        <h4>Return Percentage</h4>
+        <p>{{ client_data.return_pct }}%</p>
+      </div>
+    </div>
+    <h3 style="text-align:center;">Investment Distribution</h3>
+    <table>
+      <tr>
+        <th>Investment in Equity</th>
+        <th>Investment in MF</th>
+        <th>Investment in RE</th>
+        <th>Investment on Others</th>
+      </tr>
+      <tr>
+        <td>{{ client_data.equity }}</td>
+        <td>{{ client_data.mf }}</td>
+        <td>{{ client_data.re }}</td>
+         <td>{{ client_data.others }}</td>
+      </tr>
+    </table>
+    <h3 style="text-align:center;">Investment Distribution Chart</h3>
+    <canvas id="investmentPieChart"></canvas>
+    <div id="investmentData"
+         data-equity="{{ client_data.equity }}"
+         data-mf="{{ client_data.mf }}"
+         data-re="{{ client_data.re }}"
+         data-others="{{ client_data.others }}"></div>
+  </div>
+  <div class="download-btn" id="downloadBtn">
+    <button onclick="downloadPDF()">Download as PDF</button>
+  </div>
+  <script>
+    Chart.register(ChartDataLabels);
+    const dataElement = document.getElementById("investmentData");
+    const equity = parseFloat(dataElement.dataset.equity) || 0;
+    const mf = parseFloat(dataElement.dataset.mf) || 0;
+    const re = parseFloat(dataElement.dataset.re) || 0;
+    const others = parseFloat(dataElement.dataset.others) || 0;
+
+    const ctx = document.getElementById('investmentPieChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Equity', 'Mutual Funds', 'Real Estate','Others'],
+        datasets: [{
+          data: [equity, mf, re,others],
+          backgroundColor: ['#007bff', '#ffc107', '#28a745','#ff6384'],
+          borderColor: ['#ffffff'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          datalabels: {
+            color: '#fff',
+            font: { weight: 'bold', size: 14 },
+            formatter: (value) => `₹${value.toLocaleString()}`
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  </script>
+  <script>
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const form = document.getElementById("formSection");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const original = document.getElementById("dashboardContent");
+      form.style.display = "none";
+      downloadBtn.style.display = "none";
+      const clone = original.cloneNode(true);
+      clone.style.display = "block";
+      clone.style.position = "absolute";
+      clone.style.left = "-9999px";
+      document.body.appendChild(clone);
+      const canvas = clone.querySelector("#investmentPieChart");
+      const dataElement = document.getElementById("investmentData");
+      const equity = parseFloat(dataElement.dataset.equity) || 0;
+      const mf = parseFloat(dataElement.dataset.mf) || 0;
+      const re = parseFloat(dataElement.dataset.re) || 0;
+      const others = parseFloat(dataElement.dataset.others) || 0;
+
+      Chart.register(ChartDataLabels);
+      new Chart(canvas.getContext("2d"), {
+        type: 'pie',
+        data: {
+          labels: ['Equity', 'Mutual Funds', 'Real Estate','Others'],
+          datasets: [{
+            data: [equity, mf, re,others],
+            backgroundColor: ['#007bff', '#ffc107', '#28a745','#ff6384'],
+            borderColor: ['#ffffff'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            datalabels: {
+              color: '#fff',
+              font: { weight: 'bold', size: 14 },
+              formatter: (value) => `₹${value.toLocaleString()}`
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const backgroundUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLlceKkNbbk7vSi3G5glUn4TxGDb9oHsq61w&s";
+      const loadImage = src => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+      try {
+        const bgImg = await loadImage(backgroundUrl);
+        const htmlCanvas = await html2canvas(clone, { scale: 2, useCORS: true });
+        const imgData = htmlCanvas.toDataURL("image/png");
+        pdf.addImage(bgImg, "JPEG", 0, 0, pdfWidth, pdfHeight);
+        pdf.setGState(new pdf.GState({ opacity: 0 }));
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
+        pdf.setGState(new pdf.GState({ opacity: 1 }));
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(20);
+        pdf.setTextColor(0, 123, 255);
+        pdf.text("Tattva Investment Advisory Services-(TIAS)", pdfWidth / 2, 30, { align: "center" });
+        pdf.setFontSize(13);
+        pdf.text("Portfolio Performance Report", pdfWidth / 2, 50, { align: "center" });
+        const contentY = 70;
+        const imgWidth = htmlCanvas.width;
+        const imgHeight = htmlCanvas.height;
+        const ratio = Math.min(pdfWidth / imgWidth, (pdfHeight - contentY - 20) / imgHeight);
+        const imgX = (pdfWidth - imgWidth * ratio) / 2;
+        pdf.addImage(imgData, "PNG", imgX, contentY, imgWidth * ratio, imgHeight * ratio);
+        pdf.save("client_dashboard.pdf");
+      } catch (err) {
+        alert("Error generating PDF: " + err.message);
+      } finally {
+        document.body.removeChild(clone);
+        form.style.display = "block";
+        downloadBtn.style.display = "block";
+      }
+    }
+  </script>
+  {% endif %}
+</div>
+</body>
+</html>

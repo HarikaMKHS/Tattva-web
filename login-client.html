@@ -157,7 +157,7 @@
 
 
  <script>
-  const BACKEND_URL = "https://tattva-capital.onrender.com";  // ✅ Deployed backend
+  const BACKEND_URL = "https://tattva-web.onrender.com";  // ✅ Deployed backend
 
   document.getElementById('loginForm').addEventListener('submit', function(e) {
   e.preventDefault();
@@ -175,7 +175,7 @@
   .then(data => {
     document.getElementById('loadingMsg').style.display = "none";
     if (data.success) {
-      window.location.href = 'https://tattva-capital.onrender.com/client_dashboard';
+      window.location.href = 'https://tattva-web.onrender.comclient_dashboard';
     } else {
       alert(data.message || 'Invalid username or password.');
     }
